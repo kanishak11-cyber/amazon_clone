@@ -1,4 +1,4 @@
-import React,{ useState , useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStateValue } from './StateProvider';
 import "./Payment.css";
 import CheckoutProduct from "./CheckoutProduct";
@@ -7,7 +7,8 @@ import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { getBasketTotal } from './reducer';
 import CurrencyFormat from 'react-currency-format';
 import axios from 'axios';
-import {useHistory} from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import { db } from './firebase';
 
 
 function Payment() {
@@ -47,23 +48,35 @@ function Payment() {
             }
         }).then(({ paymentIntent }) => {
             // paymentIntent = payment confirmation
+
+            db.collection('users')
+                .doc(user?.uid)
+                .collection('orders')
+                .doc(paymentIntent.id)
+                .set({
+                    basket: basket,
+                    amount: paymentIntent.amount,
+                    created: paymentIntent.created
+                });
+
             setSucceeded(true);
             setError(null);
             setProcessing(false);
 
             history.replace('/orders');
 
-        //     dispatch({
-        //         type: "EMPTY_BASKET"
-        //     });
-        //     alert("Payment Successful");
-        // }).catch(error => {
-        //     setError(error);
-        //     setProcessing(false);
-        //     setSucceeded(false);
+            dispatch({
+                type: "EMPTY_BASKET"
+            });
+            //     alert("Payment Successful");
+            // }).catch(error => {
+            //     setError(error);
+            //     setProcessing(false);
+            //     setSucceeded(false);
         });
-        
+
     }
+    console.log("Payment Secret", clientSecret);
     const handleChange = event => {
         // listen the change in the card element
         // and display any errors as the customer types their card details
@@ -120,13 +133,13 @@ function Payment() {
                             <CardElement onChange={handleChange} />
                             <div className="payment_priceContainer">
                                 <CurrencyFormat
-                                    renderText={(value) => (                                        
-                                        <h3>Order Total: {value}</h3>                                        
+                                    renderText={(value) => (
+                                        <h3>Order Total: {value}</h3>
                                     )}
                                     decimalScale={2}
                                     value={getBasketTotal(basket)}
                                     displayType={"text"}
-                                    hundreedsSeparator={true}
+                                    thousandSeparator={true}
                                     prefix={"$"}
                                 />
                                 <button disabled={processing || disable || succeeded}>
